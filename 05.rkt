@@ -1,6 +1,7 @@
 #lang racket/base
 
-(require racket/set
+(require racket/match
+         racket/set
          rackunit)
 
 ;; check ::
@@ -104,3 +105,43 @@
     (lambda (inp)
       (for/fold ([c 0]) ([s (in-lines inp)])
         ((if (nice-string1? s) add1 values) c)))))
+
+
+(struct state [table last-char counter] #:transparent)
+
+(define (no-overlap? s v)
+  (for/or ([i (in-set s)])
+    (< i (sub1 v))))
+
+(define (update-state s c)
+  (match-define (state ht last-char i) s)
+  (define dg (string last-char c))
+  (define v (hash-ref ht dg set))
+  (or (no-overlap? v i)
+      (state (hash-set ht dg (set-add v i)) c (add1 i))))
+
+(check-true
+ (update-state (update-state (update-state (state (hash) #\a 0) #\a) #\a) #\a))
+(check-true
+ (update-state
+  (update-state
+   (update-state
+    (update-state (state (hash) #\a 0) #\a) #\b) #\a) #\a))
+(check-true
+ (state?
+  (update-state (state (hash) #\a 0) #\a)))
+
+(define (check-digraph2 ch c)
+  (define s (state (hash) c 0))
+  (define (follow-check s)
+    (lambda (ch c)
+      (define s2 (update-state s c))
+      (if (eq? #t s2)
+          (check (lambda (ch c) ch) #t)
+          (check (follow-check s2) #f))))
+  (check (follow-check s) #f))
+
+(check-false ((checker (check check-digraph2 #f)) "aaa"))
+(check-true ((checker (check check-digraph2 #f)) "aaaa"))
+(check-true ((checker (check check-digraph2 #f)) "abcabc"))
+
