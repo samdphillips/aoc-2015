@@ -1,4 +1,6 @@
 
+use std::collections::LinkedList;
+
 #[derive(Debug, Eq, PartialEq)]
 enum CheckResult {
     Success,
@@ -67,6 +69,10 @@ impl Check for CheckBad {
                    CheckResult::Uncertain },
         }
     }
+}
+
+struct Checker {
+    checks: LinkedList<T: Check>,
 }
 
 fn main() {
